@@ -1,0 +1,6 @@
+# Abaikan direktori dependensi
+/node_modules
+
+# Abaikan file environment lokal
+.env
+*.local
