@@ -198,8 +198,8 @@
                 <h2 class="text-xl font-semibold text-center text-slate-700 mb-6">Login</h2>
                 <form id="login-form">
                     <div class="mb-4">
-                        <label for="username" class="block text-sm font-medium text-slate-700 mb-1">Username</label>
-                        <input type="text" id="username" class="form-input" required autocomplete="username">
+                    <label for="username" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
+                    <input type="email" id="username" class="form-input" required autocomplete="email">
                     </div>
                     <div class="mb-6">
                         <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
@@ -617,7 +617,8 @@
         });
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 <script>
         const firebaseConfig = {
         apiKey: "AIzaSyB4zxl2TCsevr7KKfdpIQYE3VRyfr-rLOY",
@@ -702,11 +703,16 @@
                 window.appState.loggedInRole = loggedInRole;
                 startApp(loggedInRole);
             }
+            // Ganti fungsi handleLogout yang lama dengan ini
             function handleLogout() {
-             // Hapus sesi dari browser
-            sessionStorage.removeItem('loggedInRole');
-            // Muat ulang halaman. Ini adalah cara paling bersih untuk reset.
-            window.location.reload();
+                firebase.auth().signOut().then(() => {
+                    // Hapus sesi dari browser setelah berhasil logout dari Firebase
+                    sessionStorage.removeItem('loggedInRole');
+                    // Muat ulang halaman untuk kembali ke tampilan login
+                    window.location.reload();
+                }).catch((error) => {
+                    console.error('Logout Error:', error);
+                });
             }
             
             function setupUIForRole(role) {
@@ -849,24 +855,31 @@
             }
             ui.loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const username = ui.usernameInput.value;
-                let role = null;
-
-                if (username === 'guru') {
-                    role = 'guru';
-                } else if (username === 'siswa') {
-                    role = 'siswa';
-                }
+                const email = ui.usernameInput.value;
+                const password = ui.passwordInput.value;
             
-                if (role) {
-                    sessionStorage.setItem('loggedInRole', role);
-                    window.appState.loggedInRole = role;
-                    ui.loginError.classList.add('hidden');
-                    startApp(role);
-                } else {
-                    ui.loginError.textContent = 'Username salah.';
-                    ui.loginError.classList.remove('hidden');
-                }
+                // Memanggil fungsi login dari Firebase
+                firebase.auth().signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        // Jika Firebase menyatakan login berhasil
+                        console.log('Login berhasil:', userCredential.user);
+            
+                        // Logika sederhana untuk menentukan peran berdasarkan email
+                        // Ini aman karena hanya dilakukan setelah login berhasil
+                        const role = email.startsWith('guru') ? 'guru' : 'siswa';
+            
+                        // Simpan sesi dan mulai aplikasi
+                        sessionStorage.setItem('loggedInRole', role);
+                        window.appState.loggedInRole = role;
+                        ui.loginError.classList.add('hidden');
+                        startApp(role);
+                    })
+                    .catch((error) => {
+                        // Jika Firebase menyatakan login gagal
+                        console.error('Login Error:', error);
+                        ui.loginError.textContent = 'Email atau password yang Anda masukkan salah.';
+                        ui.loginError.classList.remove('hidden');
+                    });
             });
             // --- Online Database (Firestore) Wrapper ---
             const onlineDB = {
@@ -2390,5 +2403,6 @@ function renderAll() {
     </script>
 </body>
 </html>
+
 
 
