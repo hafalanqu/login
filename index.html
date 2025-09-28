@@ -639,18 +639,19 @@
             allStudents: [],
             allHafalan: [],
             quranData: [],
-            pengaturan: { // <-- TAMBAHKAN OBJEK INI
-            skorMutqin: { 
-            'sangat-lancar': 100, 'lancar': 90, 'cukup-lancar': 70, 
-            'tidak-lancar': 50, 'sangat-tidak-lancar': 30
+            pengaturan: {
+                skorMutqin: { 
+                    'sangat-lancar': 100, 'lancar': 90, 'cukup-lancar': 70, 
+                    'tidak-lancar': 50, 'sangat-tidak-lancar': 30
+                },
+                lingkupHafalan: 'full'
             },
-            lingkupHafalan: 'full'
-        },
             loggedInRole: null,
         };
-
+        
         document.addEventListener('DOMContentLoaded', () => {
-             try {
+            try {
+                // ... (kode PWA manifest dan service worker Anda tetap di sini, tidak perlu diubah) ...
                 // Membuat dan menyuntikkan link manifest
                 const manifestJsonText = document.getElementById('manifest-json').textContent;
                 const manifestBlob = new Blob([manifestJsonText], { type: 'application/json' });
@@ -659,83 +660,122 @@
                 manifestLink.rel = 'manifest';
                 manifestLink.href = manifestUrl;
                 document.head.appendChild(manifestLink);
-
+        
                 // Mendaftarkan service worker
                 if ('serviceWorker' in navigator) {
                     const swScriptText = document.getElementById('sw-script').textContent;
                     const swBlob = new Blob([swScriptText], { type: 'application/javascript' });
                     const swUrl = URL.createObjectURL(swBlob);
-
+        
                     navigator.serviceWorker.register(swUrl)
-                        .then(registration => {
-                            console.log('ServiceWorker pendaftaran berhasil dengan scope: ', registration.scope);
-                        })
-                        .catch(error => {
-                            console.log('ServiceWorker pendaftaran gagal: ', error);
-                        });
+                        .then(registration => console.log('ServiceWorker pendaftaran berhasil dengan scope: ', registration.scope))
+                        .catch(error => console.log('ServiceWorker pendaftaran gagal: ', error));
                 }
             } catch (e) {
                 console.error("Gagal melakukan setup PWA:", e);
             }
-
-            // --- NEW LOGIN & UI SETUP ---
+        
+            // --- UI Elements & Initial Setup ---
             const ui = {
                 loginView: document.getElementById('login-view'),
+                app: document.getElementById('app'),
                 loginForm: document.getElementById('login-form'),
                 loginError: document.getElementById('login-error'),
                 usernameInput: document.getElementById('username'),
                 passwordInput: document.getElementById('password'),
-                app: document.getElementById('app'),
-                loader: document.getElementById('loader'),
+                // ... (sisa elemen ui lainnya seperti sebelumnya, tidak perlu diubah)
                 iconMenuView: document.getElementById('icon-menu-view'),
                 mainContentView: document.getElementById('main-content-view'),
                 menuLinks: document.querySelectorAll('.menu-link'),
                 homeBtn: document.getElementById('home-btn'),
                 pages: document.querySelectorAll('.page'),
                 pageTitle: document.getElementById('page-title'),
-                addStudentModal: document.getElementById('add-student-modal'),
-                addStudentModalBtn: document.getElementById('add-student-modal-btn'),
-                cancelAddStudentBtn: document.getElementById('cancel-add-student'),
             };
-            // GANTI BLOK KODE LAMA DENGAN INI
+            
+            // --- Authentication Logic ---
+        
+            // Event Listener untuk Form Login
+            ui.loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = ui.usernameInput.value;
+                const password = ui.passwordInput.value;
+                let email, role;
+        
+                if (username.toLowerCase() === 'guru') {
+                    email = 'guru@hafalanqu.app'; // Sesuaikan dengan email yang Anda buat
+                    role = 'guru';
+                } else if (username.toLowerCase() === 'siswa') {
+                    email = 'siswa@hafalanqu.app'; // Sesuaikan dengan email yang Anda buat
+                    role = 'siswa';
+                } else {
+                    ui.loginError.textContent = 'Username tidak valid.';
+                    ui.loginError.classList.remove('hidden');
+                    return;
+                }
+        
+                firebase.auth().signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        sessionStorage.setItem('loggedInRole', role);
+                        // `onAuthStateChanged` akan menangani sisanya
+                    })
+                    .catch((error) => {
+                        console.error("Firebase Authentication gagal:", error);
+                        ui.loginError.textContent = 'Username atau password salah.';
+                        ui.loginError.classList.remove('hidden');
+                    });
+            });
+            
+            // Auth State Change Handler (Penjaga Utama Aplikasi)
             firebase.auth().onAuthStateChanged(user => {
                 if (user) {
-                    // ---- Pengguna SUDAH login (baik baru saja atau sesi pulih setelah refresh) ----
-                    console.log("Status Auth Terkonfirmasi, UID:", user.uid);
-                    
-                    // Ambil peran dari sessionStorage yang sudah disimpan saat login
+                    // Pengguna SUDAH login
                     const loggedInRole = sessionStorage.getItem('loggedInRole');
-                    
                     if (loggedInRole) {
-                        // Jika peran ada, jalankan aplikasi
                         startApp(loggedInRole);
                     } else {
-                        // Kasus aneh: user ter-autentikasi di Firebase tapi peran tidak ada di session.
-                        // Paling aman adalah logout dan tampilkan halaman login.
                         handleLogout();
                     }
-
                 } else {
-                    // ---- Pengguna TIDAK login ----
-                    console.log("Status Auth: Tidak ada pengguna yang login.");
-                    // Pastikan hanya halaman login yang terlihat dan sembunyikan aplikasi
+                    // Pengguna TIDAK login
                     ui.loginView.classList.remove('hidden');
                     ui.app.classList.add('hidden');
                 }
             });
-            // GANTI DENGAN FUNGSI BARU INI
+        
+            // --- Functions (startApp, handleLogout, dll.) ---
+        
+            function startApp(role) {
+                // Cek apakah initializeAppLogic sudah pernah dijalankan
+                if (window.appInitialized) {
+                    // Jika sudah, hanya update UI
+                    ui.loginView.classList.add('hidden');
+                    ui.app.classList.remove('hidden');
+                    return;
+                }
+        
+                ui.loginView.classList.add('hidden');
+                ui.app.classList.remove('hidden');
+                
+                window.appState.loggedInRole = role;
+                setupUIForRole(role);
+                initializeAppLogic(); // Fungsi ini sekarang hanya dipanggil sekali
+                window.appInitialized = true; // Tandai bahwa inisialisasi sudah selesai
+                
+                // ... (sisa kode navigasi startApp seperti sebelumnya)
+                const initialPage = window.location.hash.substring(1);
+                if (initialPage && document.getElementById(`${initialPage}-page`)) {
+                    // ... (logika navigasi halaman awal)
+                } else {
+                    history.replaceState({ page: null }, '', '#');
+                    _showIconMenuImpl();
+                }
+            }
+            
             function handleLogout() {
                 firebase.auth().signOut().then(() => {
-                    // Proses signOut berhasil.
                     sessionStorage.removeItem('loggedInRole');
-                    window.appState.loggedInRole = null;
-                    console.log("Logout berhasil.");
-                    // onAuthStateChanged akan otomatis menangani UI ke halaman login.
-                    // Reload tetap baik untuk membersihkan state sepenuhnya.
-                    window.location.href = window.location.pathname; // Kembali ke halaman utama tanpa hash
-                }).catch((error) => {
-                    console.error("Logout gagal:", error);
-                });
+                    window.location.href = window.location.pathname;
+                }).catch(error => console.error("Logout gagal:", error));
             }
             
             function setupUIForRole(role) {
@@ -2449,3 +2489,4 @@ function renderAll() {
     </script>
 </body>
 </html>
+
