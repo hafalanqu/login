@@ -617,16 +617,8 @@
         });
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script> <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
 <script>
-        const firebaseConfig = {
-        apiKey: "AIzaSyB4zxl2TCsevr7KKfdpIQYE3VRyfr-rLOY",
-        authDomain: "hafalanqu-app.firebaseapp.com",
-        projectId: "hafalanqu-app",
-        storageBucket: "hafalanqu-app.firebasestorage.app",
-        messagingSenderId: "1032716870319",
-        appId: "1:1032716870319:web:30bd0e7353ae806f676a5a"
-        };
   // Inisialisasi Firebase
   firebase.initializeApp(firebaseConfig);
   // Buat koneksi ke Firestore Database
@@ -639,19 +631,18 @@
             allStudents: [],
             allHafalan: [],
             quranData: [],
-            pengaturan: {
-                skorMutqin: { 
-                    'sangat-lancar': 100, 'lancar': 90, 'cukup-lancar': 70, 
-                    'tidak-lancar': 50, 'sangat-tidak-lancar': 30
-                },
-                lingkupHafalan: 'full'
+            pengaturan: { // <-- TAMBAHKAN OBJEK INI
+            skorMutqin: { 
+            'sangat-lancar': 100, 'lancar': 90, 'cukup-lancar': 70, 
+            'tidak-lancar': 50, 'sangat-tidak-lancar': 30
             },
+            lingkupHafalan: 'full'
+        },
             loggedInRole: null,
         };
-        
+
         document.addEventListener('DOMContentLoaded', () => {
-            try {
-                // ... (kode PWA manifest dan service worker Anda tetap di sini, tidak perlu diubah) ...
+             try {
                 // Membuat dan menyuntikkan link manifest
                 const manifestJsonText = document.getElementById('manifest-json').textContent;
                 const manifestBlob = new Blob([manifestJsonText], { type: 'application/json' });
@@ -660,194 +651,56 @@
                 manifestLink.rel = 'manifest';
                 manifestLink.href = manifestUrl;
                 document.head.appendChild(manifestLink);
-        
+
                 // Mendaftarkan service worker
                 if ('serviceWorker' in navigator) {
                     const swScriptText = document.getElementById('sw-script').textContent;
                     const swBlob = new Blob([swScriptText], { type: 'application/javascript' });
                     const swUrl = URL.createObjectURL(swBlob);
-        
+
                     navigator.serviceWorker.register(swUrl)
-                        .then(registration => console.log('ServiceWorker pendaftaran berhasil dengan scope: ', registration.scope))
-                        .catch(error => console.log('ServiceWorker pendaftaran gagal: ', error));
+                        .then(registration => {
+                            console.log('ServiceWorker pendaftaran berhasil dengan scope: ', registration.scope);
+                        })
+                        .catch(error => {
+                            console.log('ServiceWorker pendaftaran gagal: ', error);
+                        });
                 }
             } catch (e) {
                 console.error("Gagal melakukan setup PWA:", e);
             }
-        
-            // --- UI Elements & Initial Setup ---
+
+            // --- NEW LOGIN & UI SETUP ---
             const ui = {
                 loginView: document.getElementById('login-view'),
-                app: document.getElementById('app'),
                 loginForm: document.getElementById('login-form'),
                 loginError: document.getElementById('login-error'),
                 usernameInput: document.getElementById('username'),
                 passwordInput: document.getElementById('password'),
-                // ... (sisa elemen ui lainnya seperti sebelumnya, tidak perlu diubah)
+                app: document.getElementById('app'),
+                loader: document.getElementById('loader'),
                 iconMenuView: document.getElementById('icon-menu-view'),
                 mainContentView: document.getElementById('main-content-view'),
                 menuLinks: document.querySelectorAll('.menu-link'),
                 homeBtn: document.getElementById('home-btn'),
                 pages: document.querySelectorAll('.page'),
                 pageTitle: document.getElementById('page-title'),
+                addStudentModal: document.getElementById('add-student-modal'),
+                addStudentModalBtn: document.getElementById('add-student-modal-btn'),
+                cancelAddStudentBtn: document.getElementById('cancel-add-student'),
             };
-            
-            // --- Authentication Logic ---
-        
-            // Event Listener untuk Form Login
-            ui.loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const username = ui.usernameInput.value;
-                const password = ui.passwordInput.value;
-                let email, role;
-        
-                if (username.toLowerCase() === 'guru') {
-                    email = 'guru@hafalanqu.com'; // Sesuaikan dengan email yang Anda buat
-                    role = 'guru';
-                } else if (username.toLowerCase() === 'siswa') {
-                    email = 'siswa@hafalanqu.com'; // Sesuaikan dengan email yang Anda buat
-                    role = 'siswa';
-                } else {
-                    ui.loginError.textContent = 'Username tidak valid.';
-                    ui.loginError.classList.remove('hidden');
-                    return;
-                }
-        
-                firebase.auth().signInWithEmailAndPassword(email, password)
-                    .then((userCredential) => {
-                        sessionStorage.setItem('loggedInRole', role);
-                        // `onAuthStateChanged` akan menangani sisanya
-                    })
-                    .catch((error) => {
-                        console.error("Firebase Authentication gagal:", error);
-                        ui.loginError.textContent = 'Username atau password salah.';
-                        ui.loginError.classList.remove('hidden');
-                    });
-            });
-            
-            // Auth State Change Handler (Penjaga Utama Aplikasi)
-            firebase.auth().onAuthStateChanged(user => {
-                if (user) {      
-            // --- Functions (startApp, handleLogout, dll.) ---
-        
-            function startApp(role) {
-                // Cek apakah initializeAppLogic sudah pernah dijalankan
-                if (window.appInitialized) {
-                    // Jika sudah, hanya update UI
-                    ui.loginView.classList.add('hidden');
-                    ui.app.classList.remove('hidden');
-                    return;
-                }
-        
-                ui.loginView.classList.add('hidden');
-                ui.app.classList.remove('hidden');
-                
-                window.appState.loggedInRole = role;
-                setupUIForRole(role);
-                initializeAppLogic(); // Fungsi ini sekarang hanya dipanggil sekali
-                window.appInitialized = true; // Tandai bahwa inisialisasi sudah selesai
-                
-                // ... (sisa kode navigasi startApp seperti sebelumnya)
-                const initialPage = window.location.hash.substring(1);
-                if (initialPage && document.getElementById(`${initialPage}-page`)) {
-                    // ... (logika navigasi halaman awal)
-                } else {
-                    history.replaceState({ page: null }, '', '#');
-                    _showIconMenuImpl();
-                }
+            const loggedInRole = sessionStorage.getItem('loggedInRole');
+            if (loggedInRole) {
+                window.appState.loggedInRole = loggedInRole;
+                startApp(loggedInRole);
             }
-                    // --- VARIABEL GLOBAL UNTUK KONTROL APLIKASI ---
-                let appInitialized = false; // Penanda agar inisialisasi hanya berjalan sekali
+            function handleLogout() {
+             // Hapus sesi dari browser
+            sessionStorage.removeItem('loggedInRole');
+            // Muat ulang halaman. Ini adalah cara paling bersih untuk reset.
+            window.location.reload();
+            }
             
-                // --- FUNGSI UTAMA APLIKASI ---
-            
-                function startApp(role) {
-                    if (appInitialized) {
-                        // Jika sudah diinisialisasi, cukup tampilkan UI
-                        ui.loginView.classList.add('hidden');
-                        ui.app.classList.remove('hidden');
-                        return;
-                    }
-            
-                    console.log("Menjalankan aplikasi untuk pertama kalinya...");
-                    ui.loginView.classList.add('hidden');
-                    ui.app.classList.remove('hidden');
-                    
-                    window.appState.loggedInRole = role;
-                    setupUIForRole(role);
-                    initializeAppLogic(); // Memasang listener ke database
-                    
-                    appInitialized = true; // Tandai inisialisasi selesai
-                    
-                    // Logika untuk menampilkan halaman awal berdasarkan URL hash
-                    const initialPage = window.location.hash.substring(1);
-                    const pageElement = document.getElementById(`${initialPage}-page`);
-                    if (initialPage && pageElement) {
-                        _showPageImpl(initialPage);
-                    } else {
-                        _showIconMenuImpl();
-                    }
-                }
-            
-                function handleLogout() {
-                    firebase.auth().signOut().then(() => {
-                        sessionStorage.removeItem('loggedInRole');
-                        window.location.href = window.location.pathname; // Kembali ke halaman login
-                    }).catch(error => {
-                        console.error("Logout gagal:", error);
-                        showToast("Gagal untuk logout.", "error");
-                    });
-                }
-            
-                // --- LOGIKA AUTENTIKASI ---
-            
-                firebase.auth().onAuthStateChanged(user => {
-                    if (user) {
-                        // Pengguna terautentikasi
-                        const loggedInRole = sessionStorage.getItem('loggedInRole');
-                        if (loggedInRole) {
-                            startApp(loggedInRole);
-                        } else {
-                            // Sesi Firebase ada tapi peran tidak ada (kasus aneh), paksa logout
-                            handleLogout();
-                        }
-                    } else {
-                        // Pengguna tidak terautentikasi, pastikan halaman login ditampilkan
-                        ui.loginView.classList.remove('hidden');
-                        ui.app.classList.add('hidden');
-                    }
-                });
-            
-                ui.loginForm.addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const username = ui.usernameInput.value;
-                    const password = ui.passwordInput.value;
-                    let email, role;
-            
-                    if (username.toLowerCase() === 'guru') {
-                        email = 'guru@hafalanqu.app'; // Ganti dengan email yang Anda buat
-                        role = 'guru';
-                    } else if (username.toLowerCase() === 'siswa') {
-                        email = 'siswa@hafalanqu.app'; // Ganti dengan email yang Anda buat
-                        role = 'siswa';
-                    } else {
-                        ui.loginError.textContent = 'Username tidak valid.';
-                        ui.loginError.classList.remove('hidden');
-                        return;
-                    }
-            
-                    firebase.auth().signInWithEmailAndPassword(email, password)
-                        .then(() => {
-                            // Setelah login Firebase berhasil, simpan peran
-                            sessionStorage.setItem('loggedInRole', role);
-                            // `onAuthStateChanged` akan otomatis terpicu dan memanggil `startApp`
-                        })
-                        .catch((error) => {
-                            console.error("Firebase Authentication gagal:", error);
-                            ui.loginError.textContent = 'Username atau password salah.';
-                            ui.loginError.classList.remove('hidden');
-                        });
-                });
             function setupUIForRole(role) {
                 const allMenuLinks = document.querySelectorAll('.menu-link');
                 if (role === 'siswa') {
@@ -961,7 +814,54 @@
                 }
             });
             ui.addStudentModalBtn.addEventListener('click', () => ui.addStudentModal.classList.remove('hidden'));
-            ui.cancelAddStudentBtn.addEventListener('click', () => ui.addStudentModal.classList.add('hidden'));            
+            ui.cancelAddStudentBtn.addEventListener('click', () => ui.addStudentModal.classList.add('hidden'));
+
+            // --- App Startup Logic ---
+            function startApp(role) {
+                ui.loginView.classList.add('hidden');
+                ui.app.classList.remove('hidden');
+
+                setupUIForRole(role);
+                initializeAppLogic(); // Initialize DB and main logic AFTER successful login
+
+                const initialPage = window.location.hash.substring(1);
+                if (initialPage && document.getElementById(`${initialPage}-page`)) {
+                    const siswaAllowedPages = ['ringkasan', 'riwayat', 'quran', 'tentang'];
+                    if(role === 'siswa' && !siswaAllowedPages.includes(initialPage)){
+                        window.location.hash = '#';
+                        _showIconMenuImpl();
+                    } else {
+                        history.replaceState({ page: initialPage }, '', `#${initialPage}`);
+                        _showPageImpl(initialPage);
+                    }
+                } else {
+                    history.replaceState({ page: null }, '', '#');
+                    _showIconMenuImpl();
+                }
+            }
+            
+            ui.loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = ui.usernameInput.value;
+                const password = ui.passwordInput.value;
+                let role = null;
+                if (username === 'guru' && password === 'HafalanQu30juz') {
+                    role = 'guru';
+                } else if (username === 'siswa' && password === 'SiswaMulia30juz') {
+                    role = 'siswa';
+                }
+
+                if (role) {
+                    sessionStorage.setItem('loggedInRole', role);
+                    window.appState.loggedInRole = role;
+                    ui.loginError.classList.add('hidden');
+                    startApp(role);
+                } else {
+                    ui.loginError.textContent = 'Username atau password salah.';
+                    ui.loginError.classList.remove('hidden');
+                }
+            });
+            
             // --- Online Database (Firestore) Wrapper ---
             const onlineDB = {
                 // Fungsi untuk menambah data (Kelas, Siswa, atau Hafalan)
@@ -2126,56 +2026,48 @@ function renderAll() {
                 'sangat-tidak-lancar': 30
             };
 
-                    function getMutqinScores() {
-                        return window.appState.pengaturan.skorMutqin;
-                    }
-        
-                    function getQuranScope() {
-                        return window.appState.pengaturan.lingkupHafalan;
-                    }
-        
-        // ✅ FUNGSI PENGATURAN BARU (GUNAKAN INI)
-        function getMutqinScores() {
-            // Langsung ambil dari appState
-            return window.appState.pengaturan.skorMutqin;
-        }
-        
-        function getQuranScope() {
-            // Langsung ambil dari appState
-            return window.appState.pengaturan.lingkupHafalan;
-        }
-        
-        async function saveMutqinScores(scores) {
-            // Cari dokumen pengaturan skorMutqin di Firestore dan update
-            try {
-                const snapshot = await db.collection('pengaturan').where('nama', '==', 'skorMutqin').get();
-                if (!snapshot.empty) {
-                    const docId = snapshot.docs[0].id;
-                    await db.collection('pengaturan').doc(docId).update({ scores });
-                    showToast("Pengaturan skor berhasil disimpan.", "success");
-                } else {
-                    showToast("Gagal: dokumen 'skorMutqin' tidak ditemukan.", "error");
-                }
-            } catch (e) {
-                showToast("Error saat menyimpan skor.", "error");
+            function getMutqinScores() {
+                return window.appState.pengaturan.skorMutqin;
             }
-        }
-        
-        async function saveQuranScope(scope) {
-            // Cari dokumen pengaturan lingkupHafalan di Firestore dan update
-            try {
-                const snapshot = await db.collection('pengaturan').where('nama', '==', 'lingkupHafalan').get();
-                if (!snapshot.empty) {
-                    const docId = snapshot.docs[0].id;
-                    await db.collection('pengaturan').doc(docId).update({ scope });
-                    showToast("Pengaturan lingkup hafalan disimpan.", "success");
-                } else {
-                     showToast("Gagal: dokumen 'lingkupHafalan' tidak ditemukan.", "error");
-                }
-            } catch(e) {
-                showToast("Error saat menyimpan lingkup.", "error");
+
+            function getQuranScope() {
+                return window.appState.pengaturan.lingkupHafalan;
             }
-        }
+
+            // ✅ KODE YANG SUDAH DIPERBAIKI
+            async function saveMutqinScores(scores) {
+                try {
+                    const snapshot = await db.collection('pengaturan').where('nama', '==', 'skorMutqin').get();
+                    if (!snapshot.empty) {
+                        const docId = snapshot.docs[0].id;
+                        await db.collection('pengaturan').doc(docId).update({ scores });
+                        showToast("Perubahan skor berhasil disimpan."); // <-- TAMBAHKAN BARIS INI
+                    } else {
+                        showToast("Gagal menyimpan: Dokumen pengaturan tidak ditemukan.", "error");
+                    }
+                } catch (e) { 
+                    console.error("Error saat menyimpan skor: ", e);
+                    showToast("Terjadi kesalahan saat menyimpan.", "error");
+                }
+            }
+
+            // ✅ KODE YANG SUDAH DIPERBAIKI
+            async function saveQuranScope(scope) {
+                try {
+                    const snapshot = await db.collection('pengaturan').where('nama', '==', 'lingkupHafalan').get();
+                    if (!snapshot.empty) {
+                        const docId = snapshot.docs[0].id;
+                        await db.collection('pengaturan').doc(docId).update({ scope });
+                        showToast("Perubahan lingkup berhasil disimpan."); // <-- TAMBAHKAN BARIS INI
+                    } else {
+                        showToast("Gagal menyimpan: Dokumen pengaturan tidak ditemukan.", "error");
+                    }
+                } catch(e) { 
+                    console.error("Error saat menyimpan lingkup: ", e);
+                    showToast("Terjadi kesalahan saat menyimpan.", "error");
+                }
+            }
+
             window.populateSettingsForms = function() {
                 // Populate Mutqin Scores
                 const scores = getMutqinScores();
@@ -2493,6 +2385,3 @@ function renderAll() {
     </script>
 </body>
 </html>
-
-
-
