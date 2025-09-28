@@ -847,7 +847,27 @@
                     _showIconMenuImpl();
                 }
             }
+            ui.loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const username = ui.usernameInput.value;
+                let role = null;
+
+                if (username === 'guru') {
+                    role = 'guru';
+                } else if (username === 'siswa') {
+                    role = 'siswa';
+                }
             
+                if (role) {
+                    sessionStorage.setItem('loggedInRole', role);
+                    window.appState.loggedInRole = role;
+                    ui.loginError.classList.add('hidden');
+                    startApp(role);
+                } else {
+                    ui.loginError.textContent = 'Username salah.';
+                    ui.loginError.classList.remove('hidden');
+                }
+            });
             // --- Online Database (Firestore) Wrapper ---
             const onlineDB = {
                 // Fungsi untuk menambah data (Kelas, Siswa, atau Hafalan)
@@ -2370,4 +2390,5 @@ function renderAll() {
     </script>
 </body>
 </html>
+
 
