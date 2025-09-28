@@ -2269,6 +2269,7 @@ function renderAll() {
                             ayatSampai,
                             catatan: '',
                             timestamp: Date.now()
+                            studentAuthId: firebase.auth().currentUser.uid 
                         };
                         
                         await onlineDB.add('hafalan', newEntry);
@@ -2403,6 +2404,7 @@ function renderAll() {
     </script>
 </body>
 </html>
+
 
 
 
