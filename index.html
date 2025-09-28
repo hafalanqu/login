@@ -697,16 +697,45 @@
                 addStudentModalBtn: document.getElementById('add-student-modal-btn'),
                 cancelAddStudentBtn: document.getElementById('cancel-add-student'),
             };
-            const loggedInRole = sessionStorage.getItem('loggedInRole');
-            if (loggedInRole) {
-                window.appState.loggedInRole = loggedInRole;
-                startApp(loggedInRole);
-            }
+            // GANTI BLOK KODE LAMA DENGAN INI
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    // ---- Pengguna SUDAH login (baik baru saja atau sesi pulih setelah refresh) ----
+                    console.log("Status Auth Terkonfirmasi, UID:", user.uid);
+                    
+                    // Ambil peran dari sessionStorage yang sudah disimpan saat login
+                    const loggedInRole = sessionStorage.getItem('loggedInRole');
+                    
+                    if (loggedInRole) {
+                        // Jika peran ada, jalankan aplikasi
+                        startApp(loggedInRole);
+                    } else {
+                        // Kasus aneh: user ter-autentikasi di Firebase tapi peran tidak ada di session.
+                        // Paling aman adalah logout dan tampilkan halaman login.
+                        handleLogout();
+                    }
+
+                } else {
+                    // ---- Pengguna TIDAK login ----
+                    console.log("Status Auth: Tidak ada pengguna yang login.");
+                    // Pastikan hanya halaman login yang terlihat dan sembunyikan aplikasi
+                    ui.loginView.classList.remove('hidden');
+                    ui.app.classList.add('hidden');
+                }
+            });
+            // GANTI DENGAN FUNGSI BARU INI
             function handleLogout() {
-             // Hapus sesi dari browser
-            sessionStorage.removeItem('loggedInRole');
-            // Muat ulang halaman. Ini adalah cara paling bersih untuk reset.
-            window.location.reload();
+                firebase.auth().signOut().then(() => {
+                    // Proses signOut berhasil.
+                    sessionStorage.removeItem('loggedInRole');
+                    window.appState.loggedInRole = null;
+                    console.log("Logout berhasil.");
+                    // onAuthStateChanged akan otomatis menangani UI ke halaman login.
+                    // Reload tetap baik untuk membersihkan state sepenuhnya.
+                    window.location.href = window.location.pathname; // Kembali ke halaman utama tanpa hash
+                }).catch((error) => {
+                    console.error("Logout gagal:", error);
+                });
             }
             
             function setupUIForRole(role) {
@@ -2420,5 +2449,3 @@ function renderAll() {
     </script>
 </body>
 </html>
-
-
