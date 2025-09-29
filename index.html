@@ -198,7 +198,7 @@
                 <h2 class="text-xl font-semibold text-center text-slate-700 mb-6">Login</h2>
                 <form id="login-form">
                     <div class="mb-4">
-                        <label for="username" class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+                        <label for="username" class="block text-sm font-medium text-slate-700 mb-1">Email</label>
                         <input type="text" id="username" class="form-input" required autocomplete="username">
                     </div>
                     <div class="mb-6">
@@ -617,7 +617,8 @@
         });
     </script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 <script>
         const firebaseConfig = {
         apiKey: "AIzaSyB4zxl2TCsevr7KKfdpIQYE3VRyfr-rLOY",
@@ -630,7 +631,8 @@
   // Inisialisasi Firebase
   firebase.initializeApp(firebaseConfig);
   // Buat koneksi ke Firestore Database
-  const db = firebase.firestore(); 
+  const db = firebase.firestore();
+  const auth = firebase.auth();
 </script>
     <script>
         // Global application state
@@ -703,10 +705,16 @@
                 startApp(loggedInRole);
             }
             function handleLogout() {
-             // Hapus sesi dari browser
-            sessionStorage.removeItem('loggedInRole');
-            // Muat ulang halaman. Ini adalah cara paling bersih untuk reset.
-            window.location.reload();
+                auth.signOut().then(() => { // Panggil fungsi signOut dari Firebase
+                    // Hapus sesi dari browser
+                    sessionStorage.removeItem('loggedInRole');
+                    // Muat ulang halaman. Ini adalah cara paling bersih untuk reset.
+                    window.location.reload();
+                }).catch(error => {
+                    console.error("Logout Gagal:", error);
+                    // Tetap paksa reload meskipun ada error
+                    window.location.reload();
+                });
             }
             
             function setupUIForRole(role) {
@@ -848,26 +856,59 @@
                 }
             }
             
+            // GANTI DENGAN BLOK KODE INI
             ui.loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const username = ui.usernameInput.value;
+                const email = ui.usernameInput.value; // Kita anggap input username adalah email
                 const password = ui.passwordInput.value;
-                let role = null;
-                if (username === 'guru' && password === 'HafalanQu30juz') {
-                    role = 'guru';
-                } else if (username === 'siswa' && password === 'SiswaMulia30juz') {
-                    role = 'siswa';
-                }
-
-                if (role) {
-                    sessionStorage.setItem('loggedInRole', role);
-                    window.appState.loggedInRole = role;
-                    ui.loginError.classList.add('hidden');
-                    startApp(role);
-                } else {
-                    ui.loginError.textContent = 'Username atau password salah.';
-                    ui.loginError.classList.remove('hidden');
-                }
+                const loginButton = e.target.querySelector('button[type="submit"]');
+                loginButton.disabled = true;
+                loginButton.textContent = 'Memproses...';
+            
+                // Gunakan fungsi bawaan Firebase untuk login
+                auth.signInWithEmailAndPassword(email, password)
+                    .then((userCredential) => {
+                        // Jika login berhasil
+                        let role = null;
+                        // Tentukan peran berdasarkan email yang berhasil login
+                        if (userCredential.user.email === 'guru@hafalanqu.com') {
+                            role = 'guru';
+                        } else if (userCredential.user.email === 'siswa@hafalanqu.com') {
+                            role = 'siswa';
+                        }
+            
+                        if (role) {
+                            sessionStorage.setItem('loggedInRole', role);
+                            window.appState.loggedInRole = role;
+                            ui.loginError.classList.add('hidden');
+                            startApp(role);
+                        } else {
+                            // Seharusnya tidak terjadi jika email sudah benar
+                            ui.loginError.textContent = 'Peran pengguna tidak ditemukan.';
+                            ui.loginError.classList.remove('hidden');
+                        }
+                    })
+                    .catch((error) => {
+                        // Jika login gagal, tampilkan pesan error yang sesuai
+                        let message = 'Terjadi kesalahan. Coba lagi.';
+                        switch (error.code) {
+                            case 'auth/user-not-found':
+                                message = 'Username (email) tidak ditemukan.';
+                                break;
+                            case 'auth/wrong-password':
+                                message = 'Password salah. Silakan coba lagi.';
+                                break;
+                            case 'auth/invalid-email':
+                                message = 'Format username (email) tidak valid.';
+                                break;
+                        }
+                        ui.loginError.textContent = message;
+                        ui.loginError.classList.remove('hidden');
+                    })
+                    .finally(() => {
+                        loginButton.disabled = false;
+                        loginButton.textContent = 'Masuk';
+                    });
             });
             
             // --- Online Database (Firestore) Wrapper ---
@@ -2392,3 +2433,4 @@ function renderAll() {
     </script>
 </body>
 </html>
+
