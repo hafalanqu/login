@@ -888,7 +888,7 @@
                 loginButton.textContent = 'Memproses...';
             
                 // LANGKAH 1: Atur persistence ke 'session'. Ini lebih kompatibel dengan iOS/Safari.
-                auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
+                auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
                   .then(() => {
                     // LANGKAH 2: Lakukan login HANYA SETELAH persistence berhasil diatur.
                     return auth.signInWithEmailAndPassword(email, password);
@@ -2487,5 +2487,6 @@ function renderAll() {
     </script>
 </body>
 </html>
+
 
 
