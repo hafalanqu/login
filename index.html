@@ -627,13 +627,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
 <script>
-  // Inisialisasi Firebase
-  firebase.initializeApp(firebaseConfig);
-  // Buat koneksi ke Firestore Database
-  const db = firebase.firestore();
-  const auth = firebase.auth();
-</script>
-    <script>
         const firebaseConfig = {
         apiKey: "AIzaSyB4zxl2TCsevr7KKfdpIQYE3VRyfr-rLOY",
         authDomain: "hafalanqu-app.firebaseapp.com",
@@ -642,6 +635,13 @@
         messagingSenderId: "1032716870319",
         appId: "1:1032716870319:web:30bd0e7353ae806f676a5a"
         };
+  // Inisialisasi Firebase
+  firebase.initializeApp(firebaseConfig);
+  // Buat koneksi ke Firestore Database
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+</script>
+    <script>
         // Global application state
         window.appState = {
             allClasses: [],
@@ -888,7 +888,7 @@
                 loginButton.textContent = 'Memproses...';
             
                 // LANGKAH 1: Atur persistence ke 'session'. Ini lebih kompatibel dengan iOS/Safari.
-                auth.setPersistence(firebase.auth.Auth.Persistence.NONE)
+                auth.setPersistence(firebase.auth.Auth.Persistence.SESSION)
                   .then(() => {
                     // LANGKAH 2: Lakukan login HANYA SETELAH persistence berhasil diatur.
                     return auth.signInWithEmailAndPassword(email, password);
@@ -2487,11 +2487,5 @@ function renderAll() {
     </script>
 </body>
 </html>
-
-
-
-
-
-
 
 
