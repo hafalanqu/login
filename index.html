@@ -2012,6 +2012,7 @@ function renderAll() {
                 ui.studentList.innerHTML = '';
                 
                 const quranScope = getQuranScope();
+                const isJuzAmma = quranScope === 'juz30';
                 let surahsForForm;
                 const pilihanSurahNumbers = [18, 36, 55, 56, 67]; // Al-Kahfi, Yasin, Ar-Rahman, Al-Waqi'ah, Al-Mulk
 
@@ -2032,6 +2033,14 @@ function renderAll() {
                      ui.studentList.innerHTML = `<p class="text-center text-sm text-slate-400 p-4">Tidak ada siswa di kelas ini.</p>`;
                      return;
                 }
+                
+                const ayatInputsHTML = isJuzAmma ? '' : `
+                    <div class="grid grid-cols-2 gap-4">
+                        <div><label class="block text-sm font-medium mb-1">Dari Ayat</label><select name="ayatDari" class="form-select ayat-dari-select" required></select></div>
+                        <div><label class="block text-sm font-medium mb-1">Sampai Ayat</label><select name="ayatSampai" class="form-select ayat-sampai-select" required></select></div>
+                    </div>
+                `;
+
                 filteredStudents.forEach(student => {
                     const studentHafalan = window.appState.allHafalan.filter(h => h.studentId === student.id);
                     const hasSubmitted = studentHafalan.some(h => isToday(h.timestamp));
@@ -2053,10 +2062,7 @@ function renderAll() {
                                 <input type="hidden" name="studentId" value="${student.id}">
                                 <div><label class="block text-sm font-medium mb-1">Jenis Setoran</label><select name="jenis" class="form-select" required><option value="ziyadah">Ziyadah</option><option value="murajaah">Muraja'ah</option></select></div>
                                 <div><label class="block text-sm font-medium mb-1">Surah</label><select name="surah" class="form-select surah-select" required>${surahOptionsHTML}</select></div>
-                                <div class="grid grid-cols-2 gap-4">
-                                    <div><label class="block text-sm font-medium mb-1">Dari Ayat</label><select name="ayatDari" class="form-select ayat-dari-select" required></select></div>
-                                    <div><label class="block text-sm font-medium mb-1">Sampai Ayat</label><select name="ayatSampai" class="form-select ayat-sampai-select" required></select></div>
-                                </div>
+                                ${ayatInputsHTML}
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Kualitas Hafalan</label>
                                     <select name="kualitas" class="form-select">
@@ -2073,11 +2079,13 @@ function renderAll() {
                     `;
                     ui.studentList.appendChild(item);
 
-                    // Populate initial ayat dropdowns for this new form
-                    const surahSelect = item.querySelector('.surah-select');
-                    const ayatDariSelect = item.querySelector('.ayat-dari-select');
-                    const ayatSampaiSelect = item.querySelector('.ayat-sampai-select');
-                    populateAyatDropdowns(surahSelect, ayatDariSelect, ayatSampaiSelect);
+                    // Populate initial ayat dropdowns for this new form only if not Juz 'Amma
+                    if (!isJuzAmma) {
+                        const surahSelect = item.querySelector('.surah-select');
+                        const ayatDariSelect = item.querySelector('.ayat-dari-select');
+                        const ayatSampaiSelect = item.querySelector('.ayat-sampai-select');
+                        populateAyatDropdowns(surahSelect, ayatDariSelect, ayatSampaiSelect);
+                    }
                 });
             }
             
@@ -2299,10 +2307,13 @@ function renderAll() {
                 ui.studentList.addEventListener('change', e => {
                     // Menangani perubahan surah untuk memperbarui dropdown ayat
                     if (e.target.classList.contains('surah-select')) {
-                        const form = e.target.closest('.hafalan-form');
-                        const ayatDariSelect = form.querySelector('.ayat-dari-select');
-                        const ayatSampaiSelect = form.querySelector('.ayat-sampai-select');
-                        populateAyatDropdowns(e.target, ayatDariSelect, ayatSampaiSelect);
+                        const quranScope = getQuranScope();
+                        if (quranScope !== 'juz30') {
+                            const form = e.target.closest('.hafalan-form');
+                            const ayatDariSelect = form.querySelector('.ayat-dari-select');
+                            const ayatSampaiSelect = form.querySelector('.ayat-sampai-select');
+                            populateAyatDropdowns(e.target, ayatDariSelect, ayatSampaiSelect);
+                        }
                     }
                 });
 
@@ -2311,15 +2322,25 @@ function renderAll() {
                     if (e.target.classList.contains('hafalan-form')) {
                         const form = e.target;
                         const formData = new FormData(form);
+                        const quranScope = getQuranScope();
                         
                         const surahSelect = form.querySelector('.surah-select');
-                        const maxAyat = parseInt(surahSelect.options[surahSelect.selectedIndex].dataset.maxAyat);
-                        const ayatDari = parseInt(formData.get('ayatDari'));
-                        const ayatSampai = parseInt(formData.get('ayatSampai'));
+                        const selectedOption = surahSelect.options[surahSelect.selectedIndex];
+                        const maxAyat = parseInt(selectedOption.dataset.maxAyat);
+                        
+                        let ayatDari, ayatSampai;
 
-                        if (isNaN(ayatDari) || isNaN(ayatSampai)) return showToast("Ayat harus berupa angka.", "error");
-                        if (ayatDari > ayatSampai) return showToast("'Dari Ayat' tidak boleh lebih besar dari 'Sampai Ayat'.", "error");
-                        if (ayatSampai > maxAyat || ayatDari < 1) return showToast(`Ayat tidak valid. Surah ini memiliki 1-${maxAyat} ayat.`, "error");
+                        if (quranScope === 'juz30') {
+                            ayatDari = 1;
+                            ayatSampai = maxAyat;
+                        } else {
+                            ayatDari = parseInt(formData.get('ayatDari'));
+                            ayatSampai = parseInt(formData.get('ayatSampai'));
+
+                            if (isNaN(ayatDari) || isNaN(ayatSampai)) return showToast("Ayat harus berupa angka.", "error");
+                            if (ayatDari > ayatSampai) return showToast("'Dari Ayat' tidak boleh lebih besar dari 'Sampai Ayat'.", "error");
+                            if (ayatSampai > maxAyat || ayatDari < 1) return showToast(`Ayat tidak valid. Surah ini memiliki 1-${maxAyat} ayat.`, "error");
+                        }
                         
                         const newEntry = {
                             studentId: formData.get('studentId'),
@@ -2335,6 +2356,7 @@ function renderAll() {
                         await onlineDB.add('hafalan', newEntry);
                         showToast("Setoran berhasil disimpan!");
                         
+                        form.closest('.hafalan-form-container').classList.add('hidden');
                     }
                 });
 
@@ -2464,3 +2486,4 @@ function renderAll() {
     </script>
 </body>
 </html>
+
