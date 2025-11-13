@@ -455,10 +455,11 @@ function setupUIForRole(role) {
         } else if (role === 'guru') { 
             // Tampilkan semua link KECUALI link admin DAN link 'kelas'
             allMenuLinks.forEach(link => {
-                const page = link.dataset.page;
-                if (link.dataset.role === 'admin_lembaga' || page === 'kelas') { // <-- TAMBAHKAN || page === 'kelas'
+                // Sembunyikan hanya link khusus admin (Manajemen Akun, Keluar Admin)
+                if (link.dataset.role === 'admin_lembaga') {
                     link.classList.add('hidden');
                 } else {
+                    // Tampilkan sisanya (termasuk Kelas, Input Hafalan, dll)
                     link.classList.remove('hidden');
                 }
             });
@@ -1115,7 +1116,7 @@ if (!initialPage || !validPageElement) {
     if(role === 'siswa' && !siswaAllowedPages.includes(initialPage)){
         initialPage = 'ringkasan'; // Paksa ke ringkasan jika siswa mencoba akses halaman terlarang
     }
-    const adminAllowedPages = ['profil', 'manajemen_akun', 'tentang', 'kelas', 'siswa'];
+    const adminAllowedPages = ['profil', 'manajemen_akun', 'tentang', 'siswa'];
     if(role === 'admin_lembaga' && !adminAllowedPages.includes(initialPage)){
          // Jika admin me-refresh di halaman yang tidak diizinkan (spt #pengaturan atau #siswa)
          initialPage = 'manajemen_akun'; // Paksa kembali ke default admin
