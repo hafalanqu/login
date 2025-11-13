@@ -422,7 +422,7 @@ function setupUIForRole(role) {
     const siswaAllowedPages = ['profil', 'ringkasan', 'siswa', 'riwayat', 'tes_hafalan', 'tentang', 'pengaturan'];
 
     // Halaman yang boleh diakses admin
-    const adminAllowedPages = ['profil', 'manajemen_akun', 'tentang', 'kelas'];
+    const adminAllowedPages = ['profil', 'manajemen_akun', 'tentang'];
 
     if (role === 'siswa') {
         allMenuLinks.forEach(link => {
@@ -1116,7 +1116,8 @@ if (!initialPage || !validPageElement) {
     if(role === 'siswa' && !siswaAllowedPages.includes(initialPage)){
         initialPage = 'ringkasan'; // Paksa ke ringkasan jika siswa mencoba akses halaman terlarang
     }
-    const adminAllowedPages = ['profil', 'manajemen_akun', 'tentang', 'siswa'];
+    // Halaman yang boleh diakses admin
+    const adminAllowedPages = ['profil', 'manajemen_akun', 'tentang'];
     if(role === 'admin_lembaga' && !adminAllowedPages.includes(initialPage)){
          // Jika admin me-refresh di halaman yang tidak diizinkan (spt #pengaturan atau #siswa)
          initialPage = 'manajemen_akun'; // Paksa kembali ke default admin
