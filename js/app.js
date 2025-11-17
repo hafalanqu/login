@@ -5230,7 +5230,10 @@ ui.addStudentForm.addEventListener('submit', async e => {
                 await batch.commit();
 
                 showToast(`Setoran (${entriesToSave.length} entri) berhasil disimpan!`);
-
+                const timestampInput = form.querySelector('input[name="hafalan-timestamp"]');
+            if (timestampInput && typeof getLocalISOString === 'function') {
+                timestampInput.value = getLocalISOString(new Date());
+            }
             } catch (error) {
                 showToast(error.message, "error");
             } finally {
