@@ -1550,14 +1550,15 @@ function exportAllData() {
     function initializeAppLogic(lembagaId, uid) {
         const currentUserUID = uid || window.appState.currentUserUID;
         function getLocalISOString(date) {
-        const pad = (num) => num.toString().padStart(2, '0');
-        const y = date.getFullYear();
-        const M = pad(date.getMonth() + 1); // Bulan (0-11) + 1
-        const d = pad(date.getDate());
-        const h = pad(date.getHours());
-        const m = pad(date.getMinutes());
-        return `${y}-${M}-${d}T${h}:${m}`;
-    }
+            const pad = (num) => num.toString().padStart(2, '0');
+            const y = date.getFullYear();
+            const M = pad(date.getMonth() + 1);
+            const d = pad(date.getDate());
+            const h = pad(date.getHours());
+            const m = pad(date.getMinutes());
+            const s = pad(date.getSeconds());
+            return `${y}-${M}-${d}T${h}:${m}:${s}`;
+        }
 
         const uiElements = {
             addStudentModal: document.getElementById('add-student-modal'),
@@ -3490,12 +3491,12 @@ async function renderStudentList() {
         item.className = 'student-item bg-slate-50 rounded-lg';
         item.dataset.studentId = student.id;
         const defaultTimestamp = getLocalISOString(new Date());
-            const dateTimeInputHTML = `
-            <div>
-                <label class="block text-sm font-medium mb-1">Tanggal & Waktu Setoran</label>
-                <input type="datetime-local" name="hafalan-timestamp" class="form-input" value="${defaultTimestamp}" required>
-            </div>
-            `;
+        const dateTimeInputHTML = `
+        <div>
+            <label class="block text-sm font-medium mb-1">Tanggal & Waktu Setoran</label>
+            <input type="datetime-local" name="hafalan-timestamp" class="form-input live-timestamp-input" value="${defaultTimestamp}" required step="1">
+        </div>
+        `;
         const deleteButtonHTML = (role !== 'siswa')
             ? `<button data-action="delete-student" class="delete-student-btn text-red-400 hover:text-red-600 p-1 rounded-full ml-2 flex-shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -4760,6 +4761,22 @@ window.populateSettingsForms = function() {
 }
        
         async function initApp() {
+// Memulai jam digital yang berjalan setiap detik
+    setInterval(() => {
+        // 1. Ambil waktu saat ini dalam format yang benar
+        const nowString = getLocalISOString(new Date());
+
+        // 2. Temukan SEMUA input waktu yang ada di halaman
+        const inputs = document.querySelectorAll('.live-timestamp-input');
+
+        inputs.forEach(input => {
+            // 3. Hanya perbarui input yang terlihat oleh pengguna
+            //    (offsetParent === null berarti elemennya tersembunyi)
+            if (input.offsetParent !== null) {
+                input.value = nowString;
+            }
+        });
+    }, 1000); // 1000ms = 1 detik
         const headerActions = document.getElementById('header-actions');
         if (headerActions) {
             headerActions.addEventListener('click', (e) => {
@@ -5230,10 +5247,7 @@ ui.addStudentForm.addEventListener('submit', async e => {
                 await batch.commit();
 
                 showToast(`Setoran (${entriesToSave.length} entri) berhasil disimpan!`);
-                const timestampInput = form.querySelector('input[name="hafalan-timestamp"]');
-            if (timestampInput && typeof getLocalISOString === 'function') {
-                timestampInput.value = getLocalISOString(new Date());
-            }
+                
             } catch (error) {
                 showToast(error.message, "error");
             } finally {
