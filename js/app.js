@@ -3645,7 +3645,7 @@ async function renderStudentList() {
         const dateTimeInputHTML = `
         <div>
             <label class="block text-sm font-medium mb-1">Tanggal & Waktu Setoran</label>
-            <input type="datetime-local" name="hafalan-timestamp" class="form-input live-timestamp-input" value="${defaultTimestamp}" required step="1">
+            <input type="datetime-local" name="hafalan-timestamp" class="form-input live-timestamp-input w-full" style="max-width: 100%; box-sizing: border-box;" value="${defaultTimestamp}" required step="1">
         </div>
         `;
         const deleteButtonHTML = (role !== 'siswa')
