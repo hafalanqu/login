@@ -83,11 +83,15 @@
                 </a>
                 <a href="#" data-page="tes_hafalan" class="sidebar-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                        <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                        <path d="m9 12 2 2 4-4"></path>
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                        <line x1="12" y1="17" x2="12.01" y2="17"></line>
                     </svg>
                     <span>Tes Hafalan</span>
+                </a>
+                <a href="#" data-page="daftar_hadir" class="sidebar-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="m9 12 2 2 4-4"></path></svg>
+                <span>Daftar Hadir</span>
                 </a>
                  <a href="#" data-page="riwayat" class="sidebar-link">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
@@ -175,6 +179,9 @@
                 <div id="menu-lainnya-mobile" class="card p-4 md:hidden">
                     <h2 class="text-xl font-semibold text-slate-800 mb-4">Menu Lainnya</h2>
                     <div class="space-y-1">
+                        <a href="#" data-page="riwayat" class="block w-full text-left py-3 px-4 rounded-lg text-slate-700 font-medium hover:bg-slate-100 transition-colors">
+                        Riwayat Hafalan dan Tes
+                        </a>
                         <a href="#" data-page="kelas" class="block w-full text-left py-3 px-4 rounded-lg text-slate-700 font-medium hover:bg-slate-100 transition-colors">
                         Manajemen Kelas
                         </a>
@@ -263,6 +270,29 @@
                         <div id="student-progress-list" class="space-y-2">
                         </div>
                         <div id="pencapaian-pagination-controls" class="flex flex-wrap justify-center items-center gap-2 mt-6">
+                    </div>
+                </div>
+            </div>
+            <div id="daftar_hadir-page" class="page hidden">
+                <div class="card p-4 sm:p-6">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-4 gap-4">
+                        <h2 class="text-xl font-semibold text-slate-800">Daftar Hadir Siswa</h2>
+
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <select id="hadir-filter-kelas" class="form-select w-full sm:w-auto">
+                                <option value="">Filter: Semua Kelas</option>
+                            </select>
+                            <select id="hadir-filter-bulan" class="form-select w-full sm:w-auto">
+                                </select>
+                            <select id="hadir-filter-tahun" class="form-select w-full sm:w-auto">
+                                </select>
+                        </div>
+                    </div>
+
+                    <div class="w-full overflow-hidden border rounded-lg border-slate-200">
+                        <div id="daftar-hadir-container" style="overflow-x: auto; width: 100%; display: block; max-width: 100%;">
+                            <p class="text-center text-slate-500 py-4">Pilih kelas untuk menampilkan data absensi.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -687,11 +717,15 @@
                 <span></span>
             </a>
             <a href="#" data-page="tes_hafalan" class="bottom-nav-link">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="m9 12 2 2 4-4"></path></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
                 <span></span>
             </a>
-             <a href="#" data-page="riwayat" class="bottom-nav-link">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <a href="#" data-page="daftar_hadir" class="bottom-nav-link">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect><path d="m9 12 2 2 4-4"></path></svg>
                 <span></span>
             </a>
 

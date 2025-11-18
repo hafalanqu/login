@@ -22,6 +22,7 @@ window.appState = {
     currentPageSiswa: 1,
     currentPagePencapaian: 1,
     currentPageRiwayat: 1,
+    currentPageDaftarHadir: 1,
     loggedInRole: null,
     lastSubmittedStudentId: null,
     hafalanSubmissionData: null, // To temporarily hold form data for PIN verification
@@ -275,6 +276,12 @@ const ui = {
         saveBtn: document.getElementById('save-profile-btn'),
         progressContainer: document.getElementById('upload-progress-container'),
         progressBar: document.getElementById('upload-progress'),
+    },
+    daftarHadir: {
+        filterKelas: document.getElementById('hadir-filter-kelas'),
+        filterBulan: document.getElementById('hadir-filter-bulan'),
+        filterTahun: document.getElementById('hadir-filter-tahun'),
+        container: document.getElementById('daftar-hadir-container'),
     },
     // ... (sisa properti ui seperti pinModal, guruPinSettings, dll tidak berubah)
     pinModal: {
@@ -573,7 +580,7 @@ if (pageId === 'detail_siswa') {
         profil: "Profil Saya", ringkasan: "Dashboard", kelas: "Manajemen Kelas", 
         siswa: "Input Hafalan", riwayat: "Riwayat", tentang: "Tentang Aplikasi", 
         pengaturan: "Pengaturan", tes_hafalan: "Tes Hafalan", 
-        detail_siswa: "Detail Siswa", manajemen_akun: "Manajemen Akun" // <-- TAMBAHKAN INI
+        detail_siswa: "Detail Siswa", manajemen_akun: "Manajemen Akun",daftar_hadir: "Daftar Hadir"
     };
 let title = pageTitles[pageId] || "Dashboard";
         if (pageId === 'detail_siswa') {
@@ -1290,7 +1297,35 @@ function populateDateFilters() {
     }
     ui.summary.filterTanggal.value = currentTanggal; // Kembalikan nilai
 }
+function populateBulanTahunFilters() {
+    // Fungsi ini mengisi filter Bulan/Tahun untuk Daftar Hadir
+    const bulanSelect = ui.daftarHadir.filterBulan;
+    const tahunSelect = ui.daftarHadir.filterTahun;
+    if (!bulanSelect || !tahunSelect) return;
 
+    const bulanIni = new Date().getMonth(); // 0-11
+    const tahunIni = new Date().getFullYear();
+
+    // Isi Bulan
+    bulanSelect.innerHTML = '';
+    const namaBulan = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+    namaBulan.forEach((nama, index) => {
+        const option = new Option(nama, index); // Value adalah 0-11
+        bulanSelect.appendChild(option);
+    });
+    bulanSelect.value = bulanIni;
+
+    // Isi Tahun
+    tahunSelect.innerHTML = '';
+    const yearsInHafalan = new Set(window.appState.allHafalan.map(h => new Date(h.timestamp).getFullYear()));
+    yearsInHafalan.add(tahunIni); // Pastikan tahun ini ada
+
+    Array.from(yearsInHafalan).sort((a,b) => b-a).forEach(tahun => {
+        const option = new Option(tahun, tahun);
+        tahunSelect.appendChild(option);
+    });
+    tahunSelect.value = tahunIni;
+}
 /**
  * Mengambil data hafalan yang sudah difilter berdasarkan rentang tanggal.
  * @returns {Array} - Array hafalan yang sudah difilter.
@@ -2549,6 +2584,7 @@ function handleImport(event) {
         function _renderAllImpl() {
             renderSummary();
             renderClassList();
+            renderDaftarHadirRoster();
             renderStudentList();
             renderStudentProgressList();
             renderRiwayatList();
@@ -3221,7 +3257,8 @@ function renderStudentProgressList() {
                 { el: ui.studentFilterClass, defaultText: 'Filter: Semua Kelas' },
                 { el: ui.summary.rankFilterClass, defaultText: 'Hasil: Semua Kelas' },
                 { el: ui.riwayat.filterClass, defaultText: 'Filter: Semua Kelas' },
-                { el: adminUI.akunFilterKelas, defaultText: 'Filter: Semua Kelas' }
+                { el: adminUI.akunFilterKelas, defaultText: 'Filter: Semua Kelas' },
+                { el: ui.daftarHadir.filterKelas, defaultText: 'Filter: Semua Kelas' }
             ];
             const selectsToUpdate = [
                 { el: ui.newStudentClass, defaultText: '-- Pilih Kelas --' }
@@ -3334,6 +3371,120 @@ function renderStudentProgressList() {
 
             paginationContainer.appendChild(createButton('›', currentPage + 1, currentPage === totalPages));
         }
+/**
+ * Fungsi utama untuk merender tabel Roster Absensi (Daftar Hadir)
+ * berdasarkan entri 'hafalan'.
+ * Versi ini hanya menampilkan kolom untuk tanggal yang memiliki entri.
+ */
+function renderDaftarHadirRoster() {
+        if (!ui.daftarHadir.container) return;
+
+        // 1. Dapatkan Filter
+        const classId = ui.daftarHadir.filterKelas.value;
+        const month = parseInt(ui.daftarHadir.filterBulan.value, 10);
+        const year = parseInt(ui.daftarHadir.filterTahun.value, 10);
+
+        if (!classId) {
+            ui.daftarHadir.container.innerHTML = `<p class="text-center text-slate-500 py-4">Pilih kelas untuk menampilkan data absensi.</p>`;
+            return;
+        }
+
+        // 2. Filter Siswa
+        const studentsInClass = window.appState.allStudents
+            .filter(s => s.classId === classId)
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        // 3. Filter Data Hafalan
+        const hafalanInMonthForClass = window.appState.allHafalan.filter(h => {
+            if (h.studentId && !studentsInClass.find(s => s.id === h.studentId)) {
+                return false; 
+            }
+            const t = new Date(h.timestamp);
+            return t.getMonth() === month && t.getFullYear() === year;
+        });
+
+        // 4. Logika Kolom Tanggal
+        const attendanceMap = new Map(); 
+        const uniqueDateTimestamps = new Set();
+
+        hafalanInMonthForClass.forEach(h => {
+            const d = new Date(h.timestamp);
+            d.setHours(0, 0, 0, 0);
+            const normalizedTimestamp = d.getTime();
+
+            uniqueDateTimestamps.add(normalizedTimestamp);
+
+            if (!attendanceMap.has(h.studentId)) {
+                attendanceMap.set(h.studentId, new Set());
+            }
+            attendanceMap.get(h.studentId).add(normalizedTimestamp);
+        });
+
+        const sortedDates = Array.from(uniqueDateTimestamps).sort((a, b) => a - b);
+
+        // --- 5. Buat Tabel dengan STYLE EXCEL (FULL GRID) ---
+        // border-collapse: collapse memastikan garis antar sel menyatu rapi
+        let tableHTML = '<table class="min-w-full border-collapse border border-slate-300" style="border-spacing: 0;">';
+        
+        // Style garis abu-abu tegas untuk setiap sel
+        const cellStyle = 'border: 1px solid #cbd5e1;'; 
+
+        // HEADER
+        tableHTML += '<thead class="bg-slate-50">';
+        tableHTML += '<tr>';
+        // Header No
+        tableHTML += `<th class="px-3 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-0 bg-slate-50 z-20" style="${cellStyle}">No</th>`;
+        
+        // Header Nama
+        tableHTML += `<th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider sticky left-10 bg-slate-50 z-20" style="min-width: 200px; ${cellStyle}">Nama Siswa</th>`;
+        
+        if (sortedDates.length === 0) {
+             tableHTML += `<th class="px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider" style="${cellStyle}">Belum Ada Setoran</th>`;
+        } else {
+            sortedDates.forEach(timestamp => {
+                const tgl = new Date(timestamp).toLocaleDateString('id-ID', {
+                    day: '2-digit', month: '2-digit', year: '2-digit' 
+                });
+                // Header Tanggal
+                tableHTML += `<th class="w-24 px-2 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider" style="${cellStyle}">${tgl}</th>`;
+            });
+        }
+        tableHTML += '</tr></thead>';
+
+        // BODY
+        tableHTML += '<tbody class="bg-white">';
+        if (studentsInClass.length === 0) {
+            tableHTML += `<tr><td colspan="${sortedDates.length + 2}" class="text-center p-4 text-slate-500" style="${cellStyle}">Tidak ada siswa di kelas ini.</td></tr>`;
+        } else {
+            studentsInClass.forEach((student, index) => {
+                tableHTML += '<tr class="hover:bg-slate-50">';
+                // Cell No
+                tableHTML += `<td class="px-3 py-2 whitespace-nowrap text-sm text-slate-500 sticky left-0 bg-white z-10" style="${cellStyle}">${index + 1}</td>`;
+                
+                // Cell Nama
+                tableHTML += `<td class="px-4 py-2 whitespace-nowrap text-sm font-medium text-slate-900 sticky left-10 bg-white z-10" style="${cellStyle}">${student.name}</td>`;
+
+                const presentDates = attendanceMap.get(student.id) || new Set();
+
+                if (sortedDates.length === 0) {
+                     tableHTML += `<td class="px-2 py-2 whitespace-nowrap text-sm text-center" style="${cellStyle}">-</td>`;
+                } else {
+                    sortedDates.forEach(timestamp => {
+                        let cellContent = '<span class="font-bold text-red-500">X</span>'; 
+                        if (presentDates.has(timestamp)) {
+                            cellContent = '<span class="font-bold text-teal-500">✔</span>'; 
+                        }
+                        // Cell Ceklis/Silang
+                        tableHTML += `<td class="px-2 py-2 whitespace-nowrap text-sm text-center" style="${cellStyle}">${cellContent}</td>`;
+                    });
+                }
+                tableHTML += '</tr>';
+            });
+        }
+        tableHTML += '</tbody></table>';
+
+        ui.daftarHadir.container.innerHTML = tableHTML;
+    }
 /**
  * GANTI SELURUH FUNGSI INI
  */
@@ -4920,6 +5071,10 @@ if (ui.riwayat.list) {
         }
     });
 }
+// Listener untuk filter di halaman Daftar Hadir
+if (ui.daftarHadir.filterKelas) ui.daftarHadir.filterKelas.addEventListener('change', renderDaftarHadirRoster);
+if (ui.daftarHadir.filterBulan) ui.daftarHadir.filterBulan.addEventListener('change', renderDaftarHadirRoster);
+if (ui.daftarHadir.filterTahun) ui.daftarHadir.filterTahun.addEventListener('change', renderDaftarHadirRoster);
             ui.addClassForm.addEventListener('submit', async e => { 
                 e.preventDefault(); 
                 const name = ui.classNameInput.value.trim(); 
@@ -4931,6 +5086,7 @@ if (ui.riwayat.list) {
                     setButtonLoading(ui.addClassBtn, false);
                 } 
             });
+            populateBulanTahunFilters(); // Isi dropdown bulan/tahun di Daftar Hadir
             ui.classList.addEventListener('click', async (e) => {
                 const button = e.target.closest('button');
                 const classItem = e.target.closest('.class-item');
