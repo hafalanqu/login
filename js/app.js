@@ -426,7 +426,7 @@ function setupUIForRole(role) {
         ...ui.profileMenuLinks // Termasuk link di dalam profil
     ];
     // Halaman yang boleh diakses siswa (termasuk yang ada di menu profil)
-    const siswaAllowedPages = ['profil', 'ringkasan', 'siswa', 'riwayat', 'tes_hafalan', 'tentang', 'pengaturan'];
+    const siswaAllowedPages = ['profil', 'ringkasan', 'siswa', 'riwayat', 'tes_hafalan', 'tentang', 'pengaturan', 'daftar_hadir'];
 
     // Halaman yang boleh diakses admin
     const adminAllowedPages = ['profil', 'manajemen_akun', 'tentang'];
@@ -503,6 +503,17 @@ function setupUIForRole(role) {
         // Sembunyikan tombol spesifik guru
         if (ui.addStudentModalBtn) ui.addStudentModalBtn.classList.add('hidden');
         if (ui.addBulkHafalanBtn) ui.addBulkHafalanBtn.classList.add('hidden');
+    const daftarHadirFilter = document.getElementById('hadir-filter-kelas');
+    if (daftarHadirFilter) {
+        if (role === 'siswa') {
+            // Kita gunakan class 'hidden' DAN style display 'none' agar pasti tersembunyi
+            daftarHadirFilter.classList.add('hidden');
+            daftarHadirFilter.style.display = 'none'; 
+        } else {
+            daftarHadirFilter.classList.remove('hidden');
+            daftarHadirFilter.style.display = ''; // Reset agar kembali ke default (block/inline)
+        }
+    }
     }
 }
 // --- BARU: Fungsi helper untuk menyinkronkan status aktif di semua menu ---
@@ -645,7 +656,7 @@ if (pageId === 'manajemen_akun' && typeof renderManajemenAkunList === 'function'
 
     
     function showPage(pageId) {
-        const siswaAllowedPages = ['profil', 'ringkasan', 'siswa', 'riwayat', 'tes_hafalan', 'tentang', 'pengaturan'];
+        const siswaAllowedPages = ['profil', 'ringkasan', 'siswa', 'riwayat', 'tes_hafalan', 'tentang', 'pengaturan', 'daftar_hadir'];
         if (window.appState.loggedInRole === 'siswa') {
             if (!siswaAllowedPages.includes(pageId)) {
                 console.warn(`Akses ditolak untuk siswa ke halaman: ${pageId}`);
@@ -1119,7 +1130,7 @@ if (!initialPage || !validPageElement) {
 }
 
     // Validasi akses untuk siswa
-    const siswaAllowedPages = ['profil', 'ringkasan', 'siswa', 'riwayat', 'tes_hafalan', 'tentang', 'pengaturan'];
+    const siswaAllowedPages = ['profil', 'ringkasan', 'siswa', 'riwayat', 'tes_hafalan', 'tentang', 'pengaturan', 'daftar_hadir'];
     if(role === 'siswa' && !siswaAllowedPages.includes(initialPage)){
         initialPage = 'ringkasan'; // Paksa ke ringkasan jika siswa mencoba akses halaman terlarang
     }
@@ -3252,68 +3263,83 @@ function renderStudentProgressList() {
             renderRiwayatPagination(filteredHafalan.length);
         }
 
-        function renderClassList() {
-            const filtersToUpdate = [
-                { el: ui.studentFilterClass, defaultText: 'Filter: Semua Kelas' },
-                { el: ui.summary.rankFilterClass, defaultText: 'Hasil: Semua Kelas' },
-                { el: ui.riwayat.filterClass, defaultText: 'Filter: Semua Kelas' },
-                { el: adminUI.akunFilterKelas, defaultText: 'Filter: Semua Kelas' },
-                { el: ui.daftarHadir.filterKelas, defaultText: 'Filter: Semua Kelas' }
-            ];
-            const selectsToUpdate = [
-                { el: ui.newStudentClass, defaultText: '-- Pilih Kelas --' }
-            ];
-
-            const currentValues = [
-                ...filtersToUpdate.map(f => f.el ? f.el.value : null),
-                ...selectsToUpdate.map(s => s.el ? s.el.value : null)
-            ];
-
-            ui.classList.innerHTML = '';
-            filtersToUpdate.forEach(f => { if(f.el) f.el.innerHTML = `<option value="">${f.defaultText}</option>`; });
-                const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-            const editIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
-            const eyeIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-
-            window.appState.allClasses.sort((a,b) => a.name.localeCompare(b.name)).forEach(cls => {
-                const studentCount = window.appState.allStudents.filter(s => s.classId === cls.id).length;
-                const item = document.createElement('div');
-                item.className = 'class-item p-2 rounded-lg hover:bg-slate-50';
-                item.dataset.classId = cls.id;
-                item.innerHTML = `
-                    <div class="class-display">
-                        <div class="flex justify-between items-center">
-                            <div class="flex-grow mr-2">
-                                <h3 class="font-semibold text-teal-700 break-all">${cls.name}</h3>
-                                <p class="text-xs text-slate-500">${studentCount} siswa</p>
-                            </div>
-                            <div class="flex items-center space-x-1 flex-shrink-0">
-                                <button data-action="edit-class" title="Ubah Nama Kelas" class="inline-flex items-center justify-center rounded-md p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">${editIcon}</button>
-                                <button data-action="delete-class" title="Hapus Kelas" class="inline-flex items-center justify-center rounded-md p-1 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">${deleteIcon}</button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="class-edit-form hidden mt-2">
-                        <input type="text" value="${cls.name}" class="form-input mb-2 text-sm" required>
-                        <div class="flex space-x-2">
-                            <button data-action="cancel-edit" class="btn btn-sm btn-secondary flex-1">Batal</button>
-                            <button data-action="save-class" class="btn btn-sm btn-primary flex-1">Simpan</button>
-                        </div>
-                    </div>
-                `;
-
-                ui.classList.appendChild(item);
-                const option = document.createElement('option');
-                option.value = cls.id;
-                option.textContent = cls.name;
-                
-                filtersToUpdate.forEach(f => { if(f.el) f.el.appendChild(option.cloneNode(true)); });
-                selectsToUpdate.forEach(s => { if(s.el) s.el.appendChild(option.cloneNode(true)); });
-            });
-            
-            filtersToUpdate.forEach((f, i) => { if(f.el) f.el.value = currentValues[i]; });
-            selectsToUpdate.forEach((s, i) => { if(s.el) s.el.value = currentValues[filtersToUpdate.length + i]; });
+function renderClassList() {
+    // --- [BARU] LOGIKA PENYEMBUNYIAN PAKSA ---
+    // Kita taruh di sini agar setiap kali data dimuat, filter tetap dipaksa sembunyi
+    const filterKelasEl = document.getElementById('hadir-filter-kelas');
+    if (filterKelasEl) {
+        if (window.appState.loggedInRole === 'siswa') {
+            filterKelasEl.style.display = 'none'; // Paksa CSS inline
+            filterKelasEl.classList.add('hidden'); // Tambah class hidden
+        } else {
+            filterKelasEl.style.display = ''; // Reset
+            filterKelasEl.classList.remove('hidden');
         }
+    }
+    // --- AKHIR LOGIKA BARU ---
+
+    const filtersToUpdate = [
+        { el: ui.studentFilterClass, defaultText: 'Filter: Semua Kelas' },
+        { el: ui.summary.rankFilterClass, defaultText: 'Hasil: Semua Kelas' },
+        { el: ui.riwayat.filterClass, defaultText: 'Filter: Semua Kelas' },
+        { el: adminUI.akunFilterKelas, defaultText: 'Filter: Semua Kelas' },
+        { el: ui.daftarHadir.filterKelas, defaultText: 'Filter: Semua Kelas' }
+    ];
+    const selectsToUpdate = [
+        { el: ui.newStudentClass, defaultText: '-- Pilih Kelas --' }
+    ];
+
+    const currentValues = [
+        ...filtersToUpdate.map(f => f.el ? f.el.value : null),
+        ...selectsToUpdate.map(s => s.el ? s.el.value : null)
+    ];
+
+    ui.classList.innerHTML = '';
+    filtersToUpdate.forEach(f => { if(f.el) f.el.innerHTML = `<option value="">${f.defaultText}</option>`; });
+
+    // Ikon SVG (biarkan kode ikon yang sudah ada...)
+    const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+    const editIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>`;
+    
+    window.appState.allClasses.sort((a,b) => a.name.localeCompare(b.name)).forEach(cls => {
+        const studentCount = window.appState.allStudents.filter(s => s.classId === cls.id).length;
+        const item = document.createElement('div');
+        item.className = 'class-item p-2 rounded-lg hover:bg-slate-50';
+        item.dataset.classId = cls.id;
+        item.innerHTML = `
+            <div class="class-display">
+                <div class="flex justify-between items-center">
+                    <div class="flex-grow mr-2">
+                        <h3 class="font-semibold text-teal-700 break-all">${cls.name}</h3>
+                        <p class="text-xs text-slate-500">${studentCount} siswa</p>
+                    </div>
+                    <div class="flex items-center space-x-1 flex-shrink-0">
+                        <button data-action="edit-class" title="Ubah Nama Kelas" class="inline-flex items-center justify-center rounded-md p-1 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors">${editIcon}</button>
+                        <button data-action="delete-class" title="Hapus Kelas" class="inline-flex items-center justify-center rounded-md p-1 bg-red-50 text-red-600 hover:bg-red-100 transition-colors">${deleteIcon}</button>
+                    </div>
+                </div>
+            </div>
+            <div class="class-edit-form hidden mt-2">
+                <input type="text" value="${cls.name}" class="form-input mb-2 text-sm" required>
+                <div class="flex space-x-2">
+                    <button data-action="cancel-edit" class="btn btn-sm btn-secondary flex-1">Batal</button>
+                    <button data-action="save-class" class="btn btn-sm btn-primary flex-1">Simpan</button>
+                </div>
+            </div>
+        `;
+
+        ui.classList.appendChild(item);
+        const option = document.createElement('option');
+        option.value = cls.id;
+        option.textContent = cls.name;
+        
+        filtersToUpdate.forEach(f => { if(f.el) f.el.appendChild(option.cloneNode(true)); });
+        selectsToUpdate.forEach(s => { if(s.el) s.el.appendChild(option.cloneNode(true)); });
+    });
+    
+    filtersToUpdate.forEach((f, i) => { if(f.el) f.el.value = currentValues[i]; });
+    selectsToUpdate.forEach((s, i) => { if(s.el) s.el.value = currentValues[filtersToUpdate.length + i]; });
+}
         function renderSiswaPagination(totalStudents) {
             const paginationContainer = document.getElementById('student-pagination-controls');
             if (!paginationContainer) return;
@@ -3377,17 +3403,32 @@ function renderStudentProgressList() {
  * Versi ini hanya menampilkan kolom untuk tanggal yang memiliki entri.
  */
 function renderDaftarHadirRoster() {
-        if (!ui.daftarHadir.container) return;
+    if (!ui.daftarHadir.container) return;
 
-        // 1. Dapatkan Filter
-        const classId = ui.daftarHadir.filterKelas.value;
-        const month = parseInt(ui.daftarHadir.filterBulan.value, 10);
-        const year = parseInt(ui.daftarHadir.filterTahun.value, 10);
+    // 1. Dapatkan Filter
+    let classId = ui.daftarHadir.filterKelas.value; // Nilai default dari dropdown
+    const month = parseInt(ui.daftarHadir.filterBulan.value, 10);
+    const year = parseInt(ui.daftarHadir.filterTahun.value, 10);
 
-        if (!classId) {
-            ui.daftarHadir.container.innerHTML = `<p class="text-center text-slate-500 py-4">Pilih kelas untuk menampilkan data absensi.</p>`;
-            return;
+    // --- LOGIKA KHUSUS SISWA: Paksa Class ID ---
+    if (window.appState.loggedInRole === 'siswa') {
+        const currentUserUID = window.appState.currentUserUID;
+        // Cari data siswa yang sedang login
+        const currentStudent = window.appState.allStudents.find(s => s.userId === currentUserUID);
+        
+        if (currentStudent) {
+            classId = currentStudent.classId; // Override: Gunakan kelas siswa tersebut
         }
+    }
+    // -------------------------------------------
+
+    if (!classId) {
+        // Pesan jika kelas belum terpilih (atau data siswa belum dimuat)
+        ui.daftarHadir.container.innerHTML = `<p class="text-center text-slate-500 py-4">
+            ${window.appState.loggedInRole === 'siswa' ? 'Memuat data kelas...' : 'Pilih kelas untuk menampilkan data absensi.'}
+        </p>`;
+        return;
+    }
 
         // 2. Filter Siswa
         const studentsInClass = window.appState.allStudents
@@ -3642,9 +3683,22 @@ async function renderStudentList() {
         item.className = 'student-item bg-slate-50 rounded-lg';
         item.dataset.studentId = student.id;
         const defaultTimestamp = getLocalISOString(new Date());
+        const uniqueToggleId = `toggle-live-${student.id}`; // ID Unik untuk setiap siswa
+
         const dateTimeInputHTML = `
         <div>
-            <label class="block text-sm font-medium mb-1">Tanggal & Waktu Setoran</label>
+            <div class="flex justify-between items-center mb-1">
+                <label class="block text-sm font-medium">Tanggal & Waktu Setoran</label>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-500">Live</span>
+                    <div class="relative">
+                        <input type="checkbox" id="${uniqueToggleId}" class="toggle-checkbox live-clock-toggle" checked>
+                        <label for="${uniqueToggleId}" class="toggle-label">
+                            <span class="toggle-circle"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
             <input type="datetime-local" name="hafalan-timestamp" class="form-input live-timestamp-input" style="width: 100%; min-width: 0; box-sizing: border-box; -webkit-appearance: none; display: block;" value="${defaultTimestamp}" required step="1">
         </div>
         `;
@@ -4913,21 +4967,34 @@ window.populateSettingsForms = function() {
        
         async function initApp() {
 // Memulai jam digital yang berjalan setiap detik
-    setInterval(() => {
-        // 1. Ambil waktu saat ini dalam format yang benar
-        const nowString = getLocalISOString(new Date());
+setInterval(() => {
+    // 1. Ambil waktu saat ini
+    const nowString = getLocalISOString(new Date());
 
-        // 2. Temukan SEMUA input waktu yang ada di halaman
-        const inputs = document.querySelectorAll('.live-timestamp-input');
+    // 2. Temukan semua container form (baik bulk maupun individual siswa)
+    // Kita cari elemen input waktu, lalu cari toggle pasangannya
+    const inputs = document.querySelectorAll('.live-timestamp-input');
 
-        inputs.forEach(input => {
-            // 3. Hanya perbarui input yang terlihat oleh pengguna
-            //    (offsetParent === null berarti elemennya tersembunyi)
-            if (input.offsetParent !== null) {
+    inputs.forEach(input => {
+        // Hanya proses jika input terlihat di layar
+        if (input.offsetParent !== null) {
+            // Cari wrapper form/div terdekat untuk menemukan toggle pasangannya
+            // Struktur HTML kita: Wrapper > (Header dengan Toggle) + Input
+            const wrapper = input.closest('div'); 
+            if (!wrapper) return;
+
+            // Cari toggle di dalam wrapper yang sama (atau parent-nya)
+            // Karena struktur HTML di atas, toggle ada di sibling element sebelumnya (label container)
+            // Cara paling aman cari toggle dalam parent container input ini
+            const toggle = wrapper.querySelector('.live-clock-toggle');
+
+            // 3. Cek apakah toggle ada DAN dicentang (aktif)
+            if (toggle && toggle.checked) {
                 input.value = nowString;
             }
-        });
-    }, 1000); // 1000ms = 1 detik
+        }
+    });
+}, 1000);
         const headerActions = document.getElementById('header-actions');
         if (headerActions) {
             headerActions.addEventListener('click', (e) => {
